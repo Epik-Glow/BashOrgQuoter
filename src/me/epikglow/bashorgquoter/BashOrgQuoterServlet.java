@@ -195,7 +195,9 @@ public class BashOrgQuoterServlet extends HttpServlet {
 		} else {
 			responseMessage = new Sms(getErrorMessage());
 		}
-
+		
+		responseMessage = new Sms("Hello World!");
+		
 		try {
 			twiml.append(responseMessage);
 		} catch (TwiMLException e) {
