@@ -1,4 +1,4 @@
-package me.epikglow.bashorgquoter;
+package main.java.root;
 
 import java.io.IOException;
 
