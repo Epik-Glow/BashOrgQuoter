@@ -54,10 +54,5 @@
   		<artifactId>twilio-java-sdk</artifactId>
   		<version>3.3.14</version>
   	</dependency>
-  	<dependency>
-  		<groupId>javax.servlet</groupId>
-  		<artifactId>javax.servlet</artifactId>
-  		<version>3.00.v201112011016</version>
-  	</dependency>
   </dependencies>
 </project>
