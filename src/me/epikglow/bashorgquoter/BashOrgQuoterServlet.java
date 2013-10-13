@@ -1,6 +1,8 @@
-package main.java.root;
+package me.epikglow.bashorgquoter;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -14,6 +16,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.twilio.sdk.TwilioRestClient;
+import com.twilio.sdk.TwilioRestException;
+import com.twilio.sdk.resource.factory.SmsFactory;
 import com.twilio.sdk.verbs.Sms;
 import com.twilio.sdk.verbs.TwiMLException;
 import com.twilio.sdk.verbs.TwiMLResponse;
@@ -192,27 +196,40 @@ public class BashOrgQuoterServlet extends HttpServlet {
 			responseMessage = new Sms(getErrorMessage());
 		}
 		
+		String responseBody = responseMessage.getBody();
+		
+		while(responseBody.length() > 160) {
+			try {
+				twiml.append(new Sms(responseBody.substring(0, 160)));
+			} catch (TwiMLException e) {
+				e.printStackTrace();
+			}
+			
+			responseBody = responseBody.substring(160, responseBody.length());
+		}
+		
 		try {
-			twiml.append(responseMessage);
+			twiml.append(new Sms(responseBody));
 		} catch (TwiMLException e) {
 			e.printStackTrace();
 		}
 		response.setContentType("application/xml");
 		response.getWriter().print(twiml.toXML());
 	}
-	
+
 	public static void main(String[] args) {
 		Server server = new Server(Integer.valueOf(System.getenv("PORT")));
-        ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
-        context.setContextPath("/");
-        server.setHandler(context);
-        context.addServlet(new ServletHolder(new BashOrgQuoterServlet()),"/*");
-        try {
+		ServletContextHandler context = new ServletContextHandler(
+				ServletContextHandler.SESSIONS);
+		context.setContextPath("/");
+		server.setHandler(context);
+		context.addServlet(new ServletHolder(new BashOrgQuoterServlet()), "/*");
+		try {
 			server.start();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-        try {
+		try {
 			server.join();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
