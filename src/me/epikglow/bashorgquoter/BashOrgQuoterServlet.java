@@ -18,8 +18,9 @@ import org.jsoup.nodes.Element;
 import com.twilio.sdk.TwilioRestClient;
 import com.twilio.sdk.TwilioRestException;
 import com.twilio.sdk.resource.factory.SmsFactory;
-import com.twilio.sdk.resource.instance.Sms;
-import com.twilio.sdk.resource.list.SmsList;
+import com.twilio.sdk.verbs.Sms;
+import com.twilio.sdk.verbs.TwiMLException;
+import com.twilio.sdk.verbs.TwiMLResponse;
 
 @SuppressWarnings("serial")
 public class BashOrgQuoterServlet extends HttpServlet {
@@ -100,13 +101,11 @@ public class BashOrgQuoterServlet extends HttpServlet {
 	}
 
 	// Sends an error message--used when the user made an invalid choice
-	public void sendErrorMessage(String destination) {
-		sendMessages(
-				"BashOrgQuoter\nSorry, I couldn't understand your input.\nValid choices:\ntop <rank> (where rank is 1 to 200 inclusive)\nrandom",
-				destination);
-		System.out.println("Error message sent to " + destination + "!");
+	public String getErrorMessage() {
+		return "BashOrgQuoter\nSorry, I couldn't understand your input.\nValid choices:\ntop <rank> (where rank is 1 to 200 inclusive)\nrandom";
 	}
 
+	/*
 	// DOES: Sends multiple SMS messages if over 160 character limit
 	// REASON: Used to handle 160 character limit for SMS messages using Twilio
 	// Necessary because MessageFactor and Message classes don't seem to exist
@@ -171,37 +170,39 @@ public class BashOrgQuoterServlet extends HttpServlet {
 		}
 		System.out.println("Sent SMS message " + messageCounter + " to "
 				+ destination + "!");
-	}
+	}*/
 
 	public void service(HttpServletRequest request, HttpServletResponse response)
 			throws IOException {
-		SmsList messages = client.getAccount().getSmsMessages();
-		String receivedMessage = null;
-		String destination = null;
-		String[] parsedReceivedMessage = null;
-		
-		for(Sms sms : messages) {
-			receivedMessage = sms.getBody();
-			destination = sms.getFrom();
-			parsedReceivedMessage = receivedMessage.split(" ");
-			
-			if (parsedReceivedMessage.length == 2) {
-				if (parsedReceivedMessage[0].equalsIgnoreCase("top")) {
-					int choice = Integer.parseInt(parsedReceivedMessage[1]);
-					sendMessages(getTopQuote(choice), destination);
-				} else {
-					sendErrorMessage(destination);
-				}
-			} else if (parsedReceivedMessage.length == 1) {
-				if (parsedReceivedMessage[0].equalsIgnoreCase("random")) {
-					sendMessages(getRandomQuote(), destination);
-				} else {
-					sendErrorMessage(destination);
-				}
+		TwiMLResponse twiml = new TwiMLResponse();
+		String receivedMessage = request.getParameter("Body");
+		String[] parsedReceivedMessage = receivedMessage.split(" ");
+		Sms responseMessage = null;
+
+		if (parsedReceivedMessage.length == 2) {
+			if (parsedReceivedMessage[0].equalsIgnoreCase("top")) {
+				int choice = Integer.parseInt(parsedReceivedMessage[1]);
+				responseMessage = new Sms(getTopQuote(choice));
 			} else {
-				sendErrorMessage(destination);
+				responseMessage = new Sms(getErrorMessage());
 			}
+		} else if (parsedReceivedMessage.length == 1) {
+			if (parsedReceivedMessage[0].equalsIgnoreCase("random")) {
+				responseMessage = new Sms(getRandomQuote());
+			} else {
+				responseMessage = new Sms(getErrorMessage());
+			}
+		} else {
+			responseMessage = new Sms(getErrorMessage());
 		}
+
+		try {
+			twiml.append(responseMessage);
+		} catch (TwiMLException e) {
+			e.printStackTrace();
+		}
+		response.setContentType("application/xml");
+		response.getWriter().print(twiml.toXML());
 	}
 	
 	public static void main(String[] args) {
