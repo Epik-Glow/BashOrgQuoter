@@ -13,7 +13,6 @@
  
     <servlet-mapping>
         <servlet-name>BashOrgQuoterServlet</servlet-name>
-        <url-pattern>/</url-pattern>
+        <url-pattern>/sms</url-pattern>
     </servlet-mapping>
- 
 </web-app>
