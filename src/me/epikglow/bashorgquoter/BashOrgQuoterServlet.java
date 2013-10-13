@@ -18,6 +18,8 @@ import org.jsoup.nodes.Element;
 import com.twilio.sdk.TwilioRestClient;
 import com.twilio.sdk.TwilioRestException;
 import com.twilio.sdk.resource.factory.SmsFactory;
+import com.twilio.sdk.resource.instance.Sms;
+import com.twilio.sdk.resource.list.SmsList;
 
 @SuppressWarnings("serial")
 public class BashOrgQuoterServlet extends HttpServlet {
@@ -173,31 +175,33 @@ public class BashOrgQuoterServlet extends HttpServlet {
 
 	public void service(HttpServletRequest request, HttpServletResponse response)
 			throws IOException {
-		String receivedMessage = request.getParameter("Body");
-		String destination = request.getParameter("From");
-		String[] parsedReceivedMessage = receivedMessage.split(" ");
-
-		if (parsedReceivedMessage.length == 2) {
-			if (parsedReceivedMessage[0].equalsIgnoreCase("top")) {
-				int choice = Integer.parseInt(parsedReceivedMessage[1]);
-				sendMessages(getTopQuote(choice), destination);
+		SmsList messages = client.getAccount().getSmsMessages();
+		String receivedMessage = null;
+		String destination = null;
+		String[] parsedReceivedMessage = null;
+		
+		for(Sms sms : messages) {
+			receivedMessage = sms.getBody();
+			destination = sms.getFrom();
+			parsedReceivedMessage = receivedMessage.split(" ");
+			
+			if (parsedReceivedMessage.length == 2) {
+				if (parsedReceivedMessage[0].equalsIgnoreCase("top")) {
+					int choice = Integer.parseInt(parsedReceivedMessage[1]);
+					sendMessages(getTopQuote(choice), destination);
+				} else {
+					sendErrorMessage(destination);
+				}
+			} else if (parsedReceivedMessage.length == 1) {
+				if (parsedReceivedMessage[0].equalsIgnoreCase("random")) {
+					sendMessages(getRandomQuote(), destination);
+				} else {
+					sendErrorMessage(destination);
+				}
 			} else {
 				sendErrorMessage(destination);
 			}
-		} else if (parsedReceivedMessage.length == 1) {
-			if (receivedMessage.equalsIgnoreCase("random")) {
-				sendMessages(getRandomQuote(), destination);
-			} else {
-				sendErrorMessage(destination);
-			}
-		} else {
-			sendErrorMessage(destination);
 		}
-
-		/*
-		TwiMLResponse twiml = new TwiMLResponse();
-		response.setContentType("application/xml");
-		response.getWriter().print(twiml.toXML());*/
 	}
 	
 	public static void main(String[] args) {
